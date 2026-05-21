@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>生き物ファインダー</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:'Noto Serif JP',serif;background:#1a3a2a;min-height:100vh;}
+.app{max-width:430px;margin:0 auto;min-height:100vh;background:#f5f0e8;display:flex;flex-direction:column;}
+.hdr{background:#1a3a2a;padding:18px 20px 14px;text-align:center;border-bottom:3px solid #d4a017;}
+.hdr-sub{font-size:9px;letter-spacing:4px;color:#7aad7a;text-transform:uppercase;margin-bottom:3px;}
+.hdr-title{font-size:22px;font-weight:700;color:#f5f0e8;letter-spacing:2px;}
+.hdr-title span{color:#d4a017;}
+.screen{display:none;flex:1;}
+.screen.active{display:block;}
+.hero{background:linear-gradient(160deg,#1a3a2a,#2d5a3d,#4a7c59);padding:36px 24px 48px;text-align:center;}
+.hero-icon{font-size:64px;display:block;margin-bottom:14px;animation:float 3s ease-in-out infinite;}
+@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+.hero-txt{font-size:15px;color:#f5f0e8;opacity:0.85;line-height:1.7;}
+.btn-main{display:flex;align-items:center;justify-content:center;gap:10px;margin:-22px 24px 0;background:#d4a017;color:#1a3a2a;border:none;border-radius:4px;padding:18px;font-family:inherit;font-size:17px;font-weight:700;letter-spacing:2px;width:calc(100% - 48px);cursor:pointer;box-shadow:0 8px 24px rgba(0,0,0,0.25);position:relative;z-index:2;}
+.btn-main:active{opacity:0.85;}
+.home-actions{padding:18px 24px;display:flex;gap:12px;}
+.btn-sec{flex:1;background:white;border:2px solid #e8e0cc;border-radius:4px;padding:14px 8px;font-family:inherit;font-size:13px;color:#3a5a3a;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:5px;}
+.btn-sec:active{background:#e8e0cc;}
+.stats{margin:0 24px 24px;padding:16px 20px;background:#1a3a2a;border-radius:4px;display:flex;align-items:center;gap:12px;color:#f5f0e8;}
+.stats-num{font-size:22px;font-weight:700;color:#d4a017;margin-left:auto;}
+.loading-area{background:#1a3a2a;min-height:calc(100vh - 80px);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:40px;}
+.spinner{width:48px;height:48px;border:3px solid rgba(255,255,255,0.1);border-top-color:#d4a017;border-radius:50%;animation:spin 0.8s linear infinite;margin-bottom:20px;}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-txt{color:#f5f0e8;font-size:16px;letter-spacing:2px;}
+.result-photo{width:100%;height:220px;background:#2d5a3d;display:flex;align-items:center;justify-content:center;font-size:80px;}
+.rcard{margin:-18px 16px 0;background:white;border-radius:4px;box-shadow:0 8px 32px rgba(0,0,0,0.12);overflow:hidden;position:relative;z-index:2;}
+.rcard-head{background:#1a3a2a;padding:16px 18px;display:flex;align-items:flex-start;justify-content:space-between;}
+.rname{font-size:20px;font-weight:700;color:#f5f0e8;line-height:1.3;}
+.rsub{font-size:10px;color:#7aad7a;margin-top:2px;}
+.rarity-wrap{text-align:right;}
+.rlbl{font-size:9px;color:#7aad7a;letter-spacing:2px;display:block;margin-bottom:3px;}
+.stars{font-size:15px;color:#d4a017;}
+.rcard-body{padding:16px;}
+.irow{display:flex;gap:12px;padding:11px 0;border-bottom:1px solid #e8e0cc;}
+.irow:last-child{border-bottom:none;}
+.iico{font-size:18px;width:26px;flex-shrink:0;text-align:center;}
+.ilbl{font-size:9px;letter-spacing:2px;color:#4a7c59;text-transform:uppercase;margin-bottom:3px;}
+.ival{font-size:13px;line-height:1.6;color:#1a2a1a;}
+.badge{display:inline-block;padding:2px 10px;border-radius:2px;font-size:12px;font-weight:600;}
+.safe{background:#e8f5e9;color:#2e7d32;}
+.caution{background:#fff8e1;color:#f57f17;}
+.danger{background:#ffebee;color:#c62828;}
+.rcard-actions{padding:14px 16px 20px;display:flex;gap:10px;}
+.btn-save{flex:1;background:#1a3a2a;color:#f5f0e8;border:none;border-radius:4px;padding:14px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;}
+.btn-save.saved{background:#4a7c59;}
+.btn-retry{background:white;border:2px solid #e8e0cc;border-radius:4px;padding:14px 16px;font-size:20px;cursor:pointer;}
+.back{padding:14px 20px 28px;text-align:center;}
+.back button{background:none;border:none;color:#4a7c59;font-size:13px;cursor:pointer;font-family:inherit;}
+.col-header{background:#1a3a2a;padding:18px 24px;display:flex;align-items:center;gap:14px;}
+.col-title{font-size:17px;font-weight:700;color:#f5f0e8;}
+.col-badge{margin-left:auto;background:#d4a017;color:#1a3a2a;font-size:12px;font-weight:700;padding:4px 12px;border-radius:2px;}
+.col-empty{padding:60px 24px;text-align:center;color:#4a7c59;}
+.col-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:14px;}
+.col-item{background:white;border-radius:4px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.08);cursor:pointer;}
+.col-item:active{opacity:0.85;}
+.col-thumb{width:100%;height:110px;background:#2d5a3d;display:flex;align-items:center;justify-content:center;font-size:48px;}
+.col-info{padding:10px 12px;background:#1a3a2a;}
+.col-name{font-size:12px;font-weight:600;color:#f5f0e8;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.col-stars{font-size:11px;color:#d4a017;}
+.col-date{font-size:9px;color:#7aad7a;margin-top:2px;}
+.btn-round{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:100;align-items:flex-end;}
+.modal-overlay.active{display:flex;}
+.modal-box{background:#f5f0e8;width:100%;max-width:430px;margin:0 auto;max-height:85vh;border-radius:12px 12px 0 0;overflow-y:auto;animation:slideUp 0.3s ease;}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-drag{width:40px;height:4px;background:#e8e0cc;border-radius:2px;margin:12px auto 0;}
+.modal-actions{padding:14px 20px 40px;display:flex;gap:10px;}
+.btn-del{flex:1;padding:12px;background:#ffebee;border:none;border-radius:4px;color:#c62828;font-size:14px;cursor:pointer;font-family:inherit;}
+.note{background:#fffbe6;border:1px solid #ffe082;border-radius:4px;margin:16px 20px 0;padding:12px 14px;font-size:12px;color:#7a6000;line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="hdr">
+    <div class="hdr-sub">FIELD GUIDE</div>
+    <div class="hdr-title">生き物<span>ファインダー</span></div>
+  </div>
+
+  <!-- HOME -->
+  <div id="s-home" class="screen active">
+    <div class="hero">
+      <span class="hero-icon">🔍</span>
+      <p class="hero-txt">写真を撮るだけで<br>生き物の名前がわかる！</p>
+    </div>
+    <button class="btn-main" onclick="goAnalyze()">
+      <span>📷</span> 写真を撮って調べる
+    </button>
+    <div class="home-actions">
+      <button class="btn-sec" onclick="goAnalyze()">
+        <span style="font-size:24px">🖼️</span>
+        ギャラリーから選ぶ
+      </button>
+      <button class="btn-sec" onclick="goCollection()">
+        <span style="font-size:24px">📖</span>
+        図鑑を見る
+      </button>
+    </div>
+    <div class="note">
+      📌 これはデモ版です。ボタンを押すとサンプルの生き物が表示されます。
+    </div>
+    <div class="stats" style="margin-top:16px">
+      <span style="font-size:20px">🐛</span>
+      <span style="font-size:13px;opacity:0.8">見つけた生き物</span>
+      <span class="stats-num"><span id="cnt">3</span>匹</span>
+    </div>
+  </div>
+
+  <!-- LOADING -->
+  <div id="s-loading" class="screen">
+    <div class="loading-area">
+      <div style="font-size:72px;margin-bottom:24px">🦗</div>
+      <div class="spinner"></div>
+      <div class="loading-txt">調べています…</div>
+    </div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="s-result" class="screen">
+    <div class="result-photo">🦗</div>
+    <div class="rcard">
+      <div class="rcard-head">
+        <div>
+          <div class="rname">エンマコオロギ</div>
+          <div class="rsub">✓ 確認済み</div>
+        </div>
+        <div class="rarity-wrap">
+          <span class="rlbl">RARITY</span>
+          <div class="stars">★★★☆☆</div>
+        </div>
+      </div>
+      <div class="rcard-body">
+        <div class="irow">
+          <span class="iico">📝</span>
+          <div><div class="ilbl">DESCRIPTION</div><div class="ival">日本でよく見られる大きなコオロギ。秋になると「コロコロ」と美しい声で鳴きます。草むらや公園でよく見かけます。</div></div>
+        </div>
+        <div class="irow">
+          <span class="iico">⚠️</span>
+          <div><div class="ilbl">DANGER</div><div class="ival"><span class="badge safe">✅ 安全</span><div style="margin-top:6px;font-size:12px;color:#666">人を刺したり噛んだりしません</div></div></div>
+        </div>
+        <div class="irow">
+          <span class="iico">📍</span>
+          <div><div class="ilbl">HABITAT</div><div class="ival">草むら・公園・田んぼのまわり</div></div>
+        </div>
+        <div class="irow">
+          <span class="iico">⭐</span>
+          <div><div class="ilbl">RARITY NOTE</div><div class="ival">日本全国で見られるが、個体数は減少傾向にある</div></div>
+        </div>
+      </div>
+      <div class="rcard-actions">
+        <button class="btn-save" id="btn-save" onclick="doSave()">📖 図鑑に追加する</button>
+        <button class="btn-retry" onclick="goAnalyze()">🔄</button>
+      </div>
+    </div>
+    <div class="back"><button onclick="goHome()">← ホームに戻る</button></div>
+  </div>
+
+  <!-- COLLECTION -->
+  <div id="s-collection" class="screen">
+    <div class="col-header">
+      <button class="btn-round" onclick="goHome()">←</button>
+      <span class="col-title">わたしの図鑑</span>
+      <span class="col-badge" id="col-cnt">3匹</span>
+    </div>
+    <div class="col-grid" id="col-grid"></div>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModal()">
+  <div class="modal-box" onclick="event.stopPropagation()">
+    <div class="modal-drag"></div>
+    <div id="modal-thumb" style="width:100%;height:180px;background:#2d5a3d;display:flex;align-items:center;justify-content:center;font-size:72px;margin-top:12px"></div>
+    <div class="rcard" style="margin:-18px 16px 0;position:relative;z-index:2">
+      <div class="rcard-head">
+        <div>
+          <div class="rname" id="modal-name"></div>
+          <div class="rsub" id="modal-date"></div>
+        </div>
+        <div class="rarity-wrap">
+          <span class="rlbl">RARITY</span>
+          <div class="stars" id="modal-stars"></div>
+        </div>
+      </div>
+      <div class="rcard-body">
+        <div class="irow"><span class="iico">📝</span><div><div class="ilbl">DESCRIPTION</div><div class="ival" id="modal-desc"></div></div></div>
+        <div class="irow"><span class="iico">⚠️</span><div><div class="ilbl">DANGER</div><div class="ival" id="modal-danger"></div></div></div>
+        <div class="irow"><span class="iico">📍</span><div><div class="ilbl">HABITAT</div><div class="ival" id="modal-habitat"></div></div></div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-del" onclick="deleteItem()">🗑️ 削除する</button>
+      <button class="btn-save" onclick="closeModal()">閉じる</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SAMPLES = [
+  {id:1,emoji:'🦗',name:'エンマコオロギ',stars:'★★★☆☆',rarity:3,desc:'日本でよく見られる大きなコオロギ。秋になると美しい声で鳴きます。',danger:'✅ 安全',habitat:'草むら・公園・田んぼのまわり',date:'2026/5/21'},
+  {id:2,emoji:'🐞',name:'ナナホシテントウ',stars:'★★☆☆☆',rarity:2,desc:'赤地に7つの黒い点がある有名なテントウムシ。アブラムシを食べる益虫です。',danger:'✅ 安全',habitat:'花壇・野原・畑',date:'2026/5/20'},
+  {id:3,emoji:'🦋',name:'アゲハチョウ',stars:'★★★★☆',rarity:4,desc:'黄色と黒のきれいな模様の大型チョウ。幼虫はミカンの葉を食べます。',danger:'✅ 安全',habitat:'花壇・公園・山地',date:'2026/5/18'},
+];
+
+let collection = [...SAMPLES];
+let saved = false;
+let selectedId = null;
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function goHome(){showScreen('s-home');updateStats();}
+function goCollection(){renderCollection();showScreen('s-collection');}
+function goAnalyze(){
+  saved = false;
+  showScreen('s-loading');
+  setTimeout(()=>{
+    const btn=document.getElementById('btn-save');
+    btn.textContent='📖 図鑑に追加する';
+    btn.className='btn-save';
+    btn.disabled=false;
+    showScreen('s-result');
+  },2000);
+}
+function doSave(){
+  if(saved)return;
+  saved=true;
+  const btn=document.getElementById('btn-save');
+  btn.textContent='✅ 図鑑に追加済み';
+  btn.className='btn-save saved';
+  btn.disabled=true;
+  const newItem={id:Date.now(),emoji:'🦗',name:'エンマコオロギ',stars:'★★★☆☆',rarity:3,desc:'日本でよく見られる大きなコオロギ。秋になると美しい声で鳴きます。',danger:'✅ 安全',habitat:'草むら・公園・田んぼのまわり',date:new Date().toLocaleDateString('ja-JP')};
+  collection.unshift(newItem);
+  updateStats();
+}
+function updateStats(){
+  document.getElementById('cnt').textContent=collection.length;
+}
+function makeStars(n){
+  return Array.from({length:5},(_,i)=>`<span style="opacity:${i<n?1:0.25}">★</span>`).join('');
+}
+function renderCollection(){
+  document.getElementById('col-cnt').textContent=collection.length+'匹';
+  document.getElementById('col-grid').innerHTML=collection.map(item=>`
+    <div class="col-item" onclick="openModal(${item.id})">
+      <div class="col-thumb">${item.emoji}</div>
+      <div class="col-info">
+        <div class="col-name">${item.name}</div>
+        <div class="col-stars">${makeStars(item.rarity)}</div>
+        <div class="col-date">${item.date}</div>
+      </div>
+    </div>
+  `).join('');
+}
+function openModal(id){
+  const item=collection.find(c=>c.id===id);
+  if(!item)return;
+  selectedId=id;
+  document.getElementById('modal-thumb').textContent=item.emoji;
+  document.getElementById('modal-name').textContent=item.name;
+  document.getElementById('modal-date').textContent=item.date+' に発見';
+  document.getElementById('modal-stars').innerHTML=makeStars(item.rarity);
+  document.getElementById('modal-desc').textContent=item.desc;
+  document.getElementById('modal-danger').textContent=item.danger;
+  document.getElementById('modal-habitat').textContent=item.habitat;
+  document.getElementById('modal').classList.add('active');
+}
+function closeModal(){
+  document.getElementById('modal').classList.remove('active');
+  selectedId=null;
+}
+function deleteItem(){
+  collection=collection.filter(c=>c.id!==selectedId);
+  closeModal();
+  renderCollection();
+  updateStats();
+}
+renderCollection();
+</script>
+</body>
+</html>
