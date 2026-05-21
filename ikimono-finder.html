@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>生き物ファインダー</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+:root {
+  --green-deep: #1a3a2a;
+  --green-mid: #2d5a3d;
+  --green-moss: #4a7c59;
+  --green-light: #7aad7a;
+  --cream: #f5f0e8;
+  --cream-dark: #e8e0cc;
+  --gold: #d4a017;
+  --text-dark: #1a2a1a;
+}
+body { font-family: 'Noto Serif JP', serif; background: var(--green-deep); min-height: 100vh; color: var(--text-dark); }
+.app { max-width: 430px; margin: 0 auto; min-height: 100vh; background: var(--cream); }
+
+.header { background: var(--green-deep); padding: 20px 24px 16px; text-align: center; border-bottom: 3px solid var(--gold); }
+.header-sub { font-size: 10px; letter-spacing: 4px; color: var(--green-light); text-transform: uppercase; margin-bottom: 4px; }
+.header-title { font-size: 24px; font-weight: 700; color: var(--cream); letter-spacing: 2px; }
+.header-title span { color: var(--gold); }
+
+.screen { display: none; }
+.screen.active { display: block; }
+
+/* HOME */
+.hero { background: linear-gradient(160deg, var(--green-deep), var(--green-mid), var(--green-moss)); padding: 40px 24px 48px; text-align: center; }
+.hero-icon { font-size: 72px; display: block; margin-bottom: 16px; animation: float 3s ease-in-out infinite; }
+@keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+.hero-text { font-size: 16px; color: var(--cream); opacity: 0.85; line-height: 1.7; }
+.btn-main { display: flex; align-items: center; justify-content: center; gap: 12px; margin: -24px 24px 0; background: var(--gold); color: var(--green-deep); border: none; border-radius: 4px; padding: 20px; font-family: inherit; font-size: 18px; font-weight: 700; letter-spacing: 2px; width: calc(100% - 48px); cursor: pointer; box-shadow: 0 8px 24px rgba(0,0,0,0.25); position: relative; z-index: 2; }
+.btn-main:active { opacity: 0.85; }
+.home-actions { padding: 20px 24px; display: flex; gap: 12px; }
+.btn-sec { flex: 1; background: white; border: 2px solid var(--cream-dark); border-radius: 4px; padding: 14px 8px; font-family: inherit; font-size: 13px; color: #3a5a3a; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.btn-sec:active { background: var(--cream-dark); }
+.btn-sec-icon { font-size: 24px; }
+.stats { margin: 0 24px 24px; padding: 16px 20px; background: var(--green-deep); border-radius: 4px; display: flex; align-items: center; gap: 12px; color: var(--cream); }
+.stats-num { font-size: 22px; font-weight: 700; color: var(--gold); margin-left: auto; }
+.err-msg { color: #ffcc66; font-size: 13px; text-align: center; padding: 10px 24px; }
+
+/* CAMERA */
+#camera-screen { background: #000; min-height: calc(100vh - 80px); display: none; flex-direction: column; }
+#camera-screen.active { display: flex; }
+.cam-area { flex: 1; position: relative; min-height: 340px; background: #111; overflow: hidden; }
+#video { width: 100%; height: 100%; object-fit: cover; position: absolute; inset: 0; }
+.cam-corner { position: absolute; width: 24px; height: 24px; border-color: var(--gold); border-style: solid; opacity: 0.8; }
+.cam-corner.tl { top:20px;left:20px;border-width:2px 0 0 2px; }
+.cam-corner.tr { top:20px;right:20px;border-width:2px 2px 0 0; }
+.cam-corner.bl { bottom:20px;left:20px;border-width:0 0 2px 2px; }
+.cam-corner.br { bottom:20px;right:20px;border-width:0 2px 2px 0; }
+.cam-controls { background: var(--green-deep); padding: 20px 24px 40px; display: flex; align-items: center; justify-content: space-between; }
+.btn-round { width: 48px; height: 48px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; font-size: 20px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.btn-shutter { width: 72px; height: 72px; border-radius: 50%; background: white; border: 4px solid var(--gold); cursor: pointer; box-shadow: 0 0 0 6px rgba(212,160,23,0.2); font-size: 28px; display: flex; align-items: center; justify-content: center; }
+.btn-shutter:active { transform: scale(0.93); }
+
+/* LOADING */
+#loading-screen { background: var(--green-deep); min-height: calc(100vh - 80px); display: none; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px; }
+#loading-screen.active { display: flex; }
+#loading-img { width: 180px; height: 180px; object-fit: cover; border-radius: 4px; border: 3px solid var(--gold); margin-bottom: 32px; opacity: 0.7; }
+.spinner { width: 48px; height: 48px; border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--gold); border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 20px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-txt { color: var(--cream); font-size: 16px; letter-spacing: 2px; }
+
+/* RESULT */
+#result-screen { background: var(--cream); min-height: calc(100vh - 80px); overflow-y: auto; display: none; }
+#result-screen.active { display: block; }
+#result-photo { width: 100%; height: 240px; object-fit: cover; display: block; }
+.result-card { margin: -20px 16px 0; background: white; border-radius: 4px; box-shadow: 0 8px 32px rgba(0,0,0,0.12); overflow: hidden; position: relative; z-index: 2; }
+.card-head { background: var(--green-deep); padding: 16px 20px; display: flex; align-items: flex-start; justify-content: space-between; }
+.creature-name { font-size: 22px; font-weight: 700; color: var(--cream); line-height: 1.3; }
+.creature-sub { font-size: 11px; color: var(--green-light); letter-spacing: 1px; margin-top: 2px; }
+.rarity-wrap { text-align: right; }
+.rarity-lbl { font-size: 10px; color: var(--green-light); letter-spacing: 2px; display: block; margin-bottom: 4px; }
+.stars { font-size: 16px; }
+.card-body { padding: 20px; }
+.info-row { display: flex; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--cream-dark); }
+.info-row:last-child { border-bottom: none; }
+.info-icon { font-size: 20px; width: 28px; flex-shrink: 0; text-align: center; }
+.info-lbl { font-size: 10px; letter-spacing: 2px; color: var(--green-moss); text-transform: uppercase; margin-bottom: 4px; }
+.info-val { font-size: 14px; line-height: 1.6; }
+.badge { display: inline-block; padding: 2px 10px; border-radius: 2px; font-size: 12px; font-weight: 600; }
+.safe { background: #e8f5e9; color: #2e7d32; }
+.caution { background: #fff8e1; color: #f57f17; }
+.danger { background: #ffebee; color: #c62828; }
+.card-actions { padding: 16px 20px 24px; display: flex; gap: 10px; }
+.btn-save { flex: 1; background: var(--green-deep); color: var(--cream); border: none; border-radius: 4px; padding: 14px; font-family: inherit; font-size: 15px; font-weight: 600; cursor: pointer; }
+.btn-save.saved { background: var(--green-moss); }
+.btn-retry { background: white; border: 2px solid var(--cream-dark); border-radius: 4px; padding: 14px 16px; font-size: 20px; cursor: pointer; }
+.back-link { padding: 16px 20px 32px; text-align: center; }
+.back-link button { background: none; border: none; color: var(--green-moss); font-size: 14px; cursor: pointer; font-family: inherit; }
+
+/* COLLECTION */
+#collection-screen { background: var(--cream); min-height: calc(100vh - 80px); display: none; }
+#collection-screen.active { display: block; }
+.col-header { background: var(--green-deep); padding: 20px 24px; display: flex; align-items: center; gap: 16px; }
+.col-title { font-size: 18px; font-weight: 700; color: var(--cream); }
+.col-badge { margin-left: auto; background: var(--gold); color: var(--green-deep); font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 2px; }
+.col-empty { padding: 60px 24px; text-align: center; color: var(--green-moss); }
+.col-empty-icon { font-size: 64px; margin-bottom: 16px; }
+.col-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; }
+.col-item { background: white; border-radius: 4px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); cursor: pointer; }
+.col-item:active { opacity: 0.85; }
+.col-thumb { width: 100%; height: 120px; object-fit: cover; display: block; background: var(--green-mid); display: flex; align-items: center; justify-content: center; font-size: 48px; }
+.col-thumb img { width: 100%; height: 120px; object-fit: cover; }
+.col-info { padding: 10px 12px; background: var(--green-deep); }
+.col-name { font-size: 13px; font-weight: 600; color: var(--cream); margin-bottom: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.col-date { font-size: 10px; color: var(--green-light); margin-top: 2px; }
+
+/* MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; align-items: flex-end; }
+.modal-overlay.active { display: flex; }
+.modal-box { background: var(--cream); width: 100%; max-height: 85vh; border-radius: 12px 12px 0 0; overflow-y: auto; animation: slideUp 0.3s ease; }
+@keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+.modal-drag { width: 40px; height: 4px; background: var(--cream-dark); border-radius: 2px; margin: 12px auto 0; }
+.modal-actions { padding: 16px 20px 40px; display: flex; gap: 10px; }
+.btn-del { flex: 1; padding: 12px; background: #ffebee; border: none; border-radius: 4px; color: #c62828; font-size: 14px; cursor: pointer; font-family: inherit; }
+
+input[type=file] { display: none; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div class="header-sub">FIELD GUIDE</div>
+    <div class="header-title">生き物<span>ファインダー</span></div>
+  </div>
+
+  <!-- HOME -->
+  <div id="home-screen" class="screen active">
+    <div class="hero">
+      <span class="hero-icon">🔍</span>
+      <p class="hero-text">写真を撮るだけで<br>生き物の名前がわかる！</p>
+    </div>
+    <button class="btn-main" onclick="openCamera()">
+      <span>📷</span> 写真を撮って調べる
+    </button>
+    <div class="home-actions">
+      <button class="btn-sec" onclick="document.getElementById('file-input').click()">
+        <span class="btn-sec-icon">🖼️</span>
+        ギャラリーから選ぶ
+      </button>
+      <button class="btn-sec" onclick="showCollection()">
+        <span class="btn-sec-icon">📖</span>
+        図鑑を見る
+      </button>
+    </div>
+    <div id="home-err" class="err-msg" style="display:none"></div>
+    <div class="stats">
+      <span style="font-size:20px">🐛</span>
+      <span style="font-size:13px;opacity:0.8">見つけた生き物</span>
+      <span class="stats-num"><span id="stats-count">0</span>匹</span>
+    </div>
+    <input type="file" id="file-input" accept="image/*" onchange="handleFile(event)">
+  </div>
+
+  <!-- CAMERA -->
+  <div id="camera-screen" class="screen">
+    <div class="cam-area">
+      <video id="video" autoplay playsinline muted></video>
+      <div class="cam-corner tl"></div>
+      <div class="cam-corner tr"></div>
+      <div class="cam-corner bl"></div>
+      <div class="cam-corner br"></div>
+    </div>
+    <div class="cam-controls">
+      <button class="btn-round" onclick="goHome()">←</button>
+      <button class="btn-shutter" onclick="capturePhoto()">📷</button>
+      <button class="btn-round" onclick="document.getElementById('cam-file').click()">🖼️</button>
+    </div>
+    <input type="file" id="cam-file" accept="image/*" onchange="handleFile(event)">
+  </div>
+
+  <!-- LOADING -->
+  <div id="loading-screen" class="screen">
+    <img id="loading-img" src="" alt="">
+    <div class="spinner"></div>
+    <div class="loading-txt">調べています…</div>
+  </div>
+
+  <!-- RESULT -->
+  <div id="result-screen" class="screen">
+    <img id="result-photo" src="" alt="">
+    <div class="result-card">
+      <div class="card-head">
+        <div>
+          <div class="creature-name" id="res-name"></div>
+          <div class="creature-sub" id="res-sub"></div>
+        </div>
+        <div class="rarity-wrap">
+          <span class="rarity-lbl">RARITY</span>
+          <div class="stars" id="res-stars"></div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="info-row">
+          <span class="info-icon">📝</span>
+          <div><div class="info-lbl">DESCRIPTION</div><div class="info-val" id="res-desc"></div></div>
+        </div>
+        <div class="info-row">
+          <span class="info-icon">⚠️</span>
+          <div><div class="info-lbl">DANGER</div><div class="info-val" id="res-danger"></div></div>
+        </div>
+        <div class="info-row">
+          <span class="info-icon">📍</span>
+          <div><div class="info-lbl">HABITAT</div><div class="info-val" id="res-habitat"></div></div>
+        </div>
+        <div class="info-row">
+          <span class="info-icon">⭐</span>
+          <div><div class="info-lbl">RARITY NOTE</div><div class="info-val" id="res-rarity-note"></div></div>
+        </div>
+      </div>
+      <div class="card-actions">
+        <button class="btn-save" id="btn-save" onclick="saveToCollection()">📖 図鑑に追加する</button>
+        <button class="btn-retry" onclick="openCamera()">🔄</button>
+      </div>
+    </div>
+    <div class="back-link"><button onclick="goHome()">← ホームに戻る</button></div>
+  </div>
+
+  <!-- COLLECTION -->
+  <div id="collection-screen" class="screen">
+    <div class="col-header">
+      <button class="btn-round" onclick="goHome()">←</button>
+      <span class="col-title">わたしの図鑑</span>
+      <span class="col-badge" id="col-count">0匹</span>
+    </div>
+    <div id="col-empty" class="col-empty">
+      <div class="col-empty-icon">📖</div>
+      <div>まだ生き物を見つけていません。<br>外に出て撮影してみよう！</div>
+    </div>
+    <div class="col-grid" id="col-grid"></div>
+  </div>
+
+  <!-- MODAL -->
+  <div class="modal-overlay" id="modal" onclick="closeModal()">
+    <div class="modal-box" onclick="event.stopPropagation()">
+      <div class="modal-drag"></div>
+      <img id="modal-photo" src="" style="width:100%;height:200px;object-fit:cover;display:block;margin-top:12px">
+      <div class="result-card" style="margin:-20px 16px 0;position:relative;z-index:2">
+        <div class="card-head">
+          <div>
+            <div class="creature-name" id="modal-name"></div>
+            <div class="creature-sub" id="modal-date"></div>
+          </div>
+          <div class="rarity-wrap">
+            <span class="rarity-lbl">RARITY</span>
+            <div class="stars" id="modal-stars"></div>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="info-row"><span class="info-icon">📝</span><div><div class="info-lbl">DESCRIPTION</div><div class="info-val" id="modal-desc"></div></div></div>
+          <div class="info-row"><span class="info-icon">⚠️</span><div><div class="info-lbl">DANGER</div><div class="info-val" id="modal-danger"></div></div></div>
+          <div class="info-row"><span class="info-icon">📍</span><div><div class="info-lbl">HABITAT</div><div class="info-val" id="modal-habitat"></div></div></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-del" onclick="deleteItem()">🗑️ 削除する</button>
+        <button class="btn-save" onclick="closeModal()">閉じる</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let collection = [];
+let currentImage = null;
+let currentResult = null;
+let selectedId = null;
+let stream = null;
+
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goHome() {
+  stopCamera();
+  showScreen('home-screen');
+  updateStats();
+}
+
+function showCollection() {
+  renderCollection();
+  showScreen('collection-screen');
+}
+
+function stopCamera() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+}
+
+async function openCamera() {
+  showScreen('camera-screen');
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+    document.getElementById('video').srcObject = stream;
+  } catch(e) {
+    showErr('カメラが使えません。ギャラリーから選んでください。');
+    showScreen('home-screen');
+  }
+}
+
+function capturePhoto() {
+  const video = document.getElementById('video');
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+  stopCamera();
+  processImage(dataUrl);
+}
+
+function handleFile(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  e.target.value = '';
+  stopCamera();
+  const reader = new FileReader();
+  reader.onload = ev => processImage(ev.target.result);
+  reader.readAsDataURL(file);
+}
+
+async function processImage(dataUrl) {
+  currentImage = dataUrl;
+  currentResult = null;
+  document.getElementById('loading-img').src = dataUrl;
+  showScreen('loading-screen');
+
+  try {
+    const base64 = dataUrl.split(',')[1];
+    const result = await analyzeImage(base64);
+    currentResult = result;
+    showResult(result, dataUrl);
+  } catch(e) {
+    showErr('解析に失敗しました: ' + e.message);
+    showScreen('home-screen');
+  }
+}
+
+async function analyzeImage(base64) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64 } },
+          { type: 'text', text: `この画像の生き物（虫・動物）を図鑑風に分析してください。植物は対象外。生き物がいない場合は isCreature: false にしてください。
+JSONのみで返してください:
+{"isCreature":true,"name":"和名","confidence":"確実 or たぶん〜 or おそらく〜","description":"9歳向け説明2〜3文","danger":"安全 or 注意 or 危険","dangerNote":"理由を短く","habitat":"生息地を短く","rarity":1から5の整数,"rarityReason":"理由を短く","emoji":"絵文字1つ"}` }
+        ]
+      }]
+    })
+  });
+  const data = await res.json();
+  const text = data.content.map(i => i.text || '').join('');
+  return JSON.parse(text.replace(/```json|```/g, '').trim());
+}
+
+function makeStars(n) {
+  return Array.from({length:5},(_,i)=>`<span style="opacity:${i<n?1:0.2}">★</span>`).join('');
+}
+
+function dangerBadge(level) {
+  const map = { '安全':'safe', '注意':'caution', '危険':'danger' };
+  const icon = { '安全':'✅', '注意':'⚠️', '危険':'🚨' };
+  return `<span class="badge ${map[level]||'safe'}">${icon[level]||''} ${level}</span>`;
+}
+
+function showResult(r, img) {
+  if (!r.isCreature) {
+    showErr('生き物が見つかりませんでした。別の写真を試してください。');
+    showScreen('home-screen');
+    return;
+  }
+  document.getElementById('result-photo').src = img;
+  document.getElementById('res-name').textContent = (r.confidence !== '確実' ? r.confidence : '') + r.name;
+  document.getElementById('res-sub').textContent = r.confidence === '確実' ? '✓ 確認済み' : 'AI推定';
+  document.getElementById('res-stars').innerHTML = makeStars(r.rarity);
+  document.getElementById('res-desc').textContent = r.description;
+  document.getElementById('res-danger').innerHTML = dangerBadge(r.danger) + `<div style="margin-top:6px;font-size:13px;color:#666">${r.dangerNote}</div>`;
+  document.getElementById('res-habitat').textContent = r.habitat;
+  document.getElementById('res-rarity-note').textContent = r.rarityReason;
+  const btn = document.getElementById('btn-save');
+  btn.textContent = '📖 図鑑に追加する';
+  btn.className = 'btn-save';
+  btn.disabled = false;
+  showScreen('result-screen');
+}
+
+function saveToCollection() {
+  if (!currentResult) return;
+  const entry = {
+    id: Date.now(),
+    name: currentResult.name,
+    emoji: currentResult.emoji,
+    rarity: currentResult.rarity,
+    image: currentImage,
+    result: currentResult,
+    date: new Date().toLocaleDateString('ja-JP')
+  };
+  collection.unshift(entry);
+  const btn = document.getElementById('btn-save');
+  btn.textContent = '✅ 図鑑に追加済み';
+  btn.className = 'btn-save saved';
+  btn.disabled = true;
+  updateStats();
+}
+
+function updateStats() {
+  document.getElementById('stats-count').textContent = collection.length;
+}
+
+function renderCollection() {
+  document.getElementById('col-count').textContent = collection.length + '匹';
+  const empty = document.getElementById('col-empty');
+  const grid = document.getElementById('col-grid');
+  if (collection.length === 0) {
+    empty.style.display = 'block';
+    grid.innerHTML = '';
+    return;
+  }
+  empty.style.display = 'none';
+  grid.innerHTML = collection.map(item => `
+    <div class="col-item" onclick="openModal(${item.id})">
+      <div class="col-thumb">
+        ${item.image ? `<img src="${item.image}" alt="${item.name}">` : item.emoji}
+      </div>
+      <div class="col-info">
+        <div class="col-name">${item.name}</div>
+        <div>${makeStars(item.rarity)}</div>
+        <div class="col-date">${item.date}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function openModal(id) {
+  const item = collection.find(c => c.id === id);
+  if (!item) return;
+  selectedId = id;
+  document.getElementById('modal-photo').src = item.image || '';
+  document.getElementById('modal-photo').style.display = item.image ? 'block' : 'none';
+  document.getElementById('modal-name').textContent = item.name;
+  document.getElementById('modal-date').textContent = item.date + ' に発見';
+  document.getElementById('modal-stars').innerHTML = makeStars(item.rarity);
+  document.getElementById('modal-desc').textContent = item.result?.description || '';
+  document.getElementById('modal-danger').innerHTML = dangerBadge(item.result?.danger);
+  document.getElementById('modal-habitat').textContent = item.result?.habitat || '';
+  document.getElementById('modal').classList.add('active');
+}
+
+function closeModal() {
+  document.getElementById('modal').classList.remove('active');
+  selectedId = null;
+}
+
+function deleteItem() {
+  collection = collection.filter(c => c.id !== selectedId);
+  closeModal();
+  renderCollection();
+  updateStats();
+}
+
+function showErr(msg) {
+  const el = document.getElementById('home-err');
+  el.textContent = msg;
+  el.style.display = 'block';
+  setTimeout(() => el.style.display = 'none', 4000);
+}
+</script>
+</body>
+</html>
